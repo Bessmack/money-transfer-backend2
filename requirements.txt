@@ -8,3 +8,4 @@ SQLAlchemy
 Werkzeug
 email-validator
 gunicorn
+colorama==0.4.6
