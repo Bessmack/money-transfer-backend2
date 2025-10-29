@@ -23,13 +23,13 @@ def generate_unique_id(prefix, length=10):
     return f"{prefix}-{random_part}"
 
 
-def calculate_fee(amount, fee_rate=0.005):
+def calculate_fee(amount, fee_rate=0.015):
     """
     Calculate transaction fee
     
     Args:
         amount (float): Transaction amount
-        fee_rate (float): Fee rate (default 0.5%)
+        fee_rate (float): Fee rate (default 1.5%)
     
     Returns:
         float: Calculated fee rounded to 2 decimal places
@@ -68,7 +68,7 @@ def validate_phone(phone):
     return re.match(pattern, cleaned) is not None
 
 
-def format_currency(amount, currency='USD'):
+def format_currency(amount, currency='KES'):
     """
     Format amount as currency
     

@@ -20,7 +20,7 @@ class Config:
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173').split(',')
     
     # Transaction Configuration
-    TRANSACTION_FEE_RATE = 0.005  # 0.5%
+    TRANSACTION_FEE_RATE = 0.015  # 1.5%
     MIN_TRANSACTION_AMOUNT = 1.0
     MAX_TRANSACTION_AMOUNT = 10000.0
     

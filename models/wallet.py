@@ -8,7 +8,7 @@ class Wallet(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
     wallet_id = db.Column(db.String(50), unique=True, nullable=False)
     balance = db.Column(db.Float, default=0.0)
-    currency = db.Column(db.String(10), default='USD')
+    currency = db.Column(db.String(10), default='KSh')
     status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

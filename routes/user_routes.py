@@ -30,12 +30,6 @@ def user_profile():
             user.phone = data['phone']
         if 'country' in data:
             user.country = data['country']
-        if 'address' in data:
-            user.address = data['address']
-        if 'city' in data:
-            user.city = data['city']
-        if 'zip_code' in data:
-            user.zip_code = data['zip_code']
         
         user.updated_at = datetime.utcnow()
         db.session.commit()

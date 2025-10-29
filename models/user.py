@@ -10,7 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(20))
-    country = db.Column(db.String(100))
+    country = db.Column(db.String(100), default='Kenya')
     role = db.Column(db.String(20), default='user')  # 'user' or 'admin'
     status = db.Column(db.String(20), default='active')  # 'active' or 'inactive'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
