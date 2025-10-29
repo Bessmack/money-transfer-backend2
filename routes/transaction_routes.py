@@ -7,7 +7,6 @@ from datetime import datetime
 
 bp = Blueprint('transaction', __name__, url_prefix='/api/transactions')
 
-# ---------------- SEND MONEY ---------------- #
 @bp.route('/send', methods=['POST'])
 @jwt_required()
 def send_money():
@@ -25,7 +24,6 @@ def send_money():
         if amount <= 0:
             return jsonify({'error': 'Invalid amount'}), 400
 
-        # Get receiver
         receiver = User.query.get(receiver_id)
         if not receiver:
             return jsonify({'error': 'Receiver not found'}), 404
@@ -34,24 +32,19 @@ def send_money():
         if not receiver_wallet:
             return jsonify({'error': 'Receiver wallet not found'}), 404
 
-        # Calculate fee and total
         fee = calculate_fee(amount)
         total_amount = amount + fee
 
-        # Check sender balance
         if sender_wallet.balance < total_amount:
             return jsonify({'error': 'Insufficient balance'}), 400
 
-        # Process transaction
         sender_wallet.balance -= total_amount
         receiver_wallet.balance += amount
         sender_wallet.updated_at = datetime.utcnow()
         receiver_wallet.updated_at = datetime.utcnow()
 
-        # Get sender info
         sender = User.query.get(current_user_id)
 
-        # Create transaction record
         transaction = Transaction(
             transaction_id=generate_unique_id('TXN', 7),
             sender_id=current_user_id,
@@ -84,15 +77,11 @@ def send_money():
         return jsonify({'error': str(e)}), 500
 
 
-# ---------------- GET TRANSACTIONS ---------------- #
 @bp.route('', methods=['GET'])
 @jwt_required()
 def get_transactions():
     try:
-        print("🔍 Transactions endpoint called")  # ADD THIS
         current_user_id = get_jwt_identity()
-        print(f"👤 Current user ID: {current_user_id}")  # ADD THIS
-        
         transaction_type = request.args.get('type', 'all')
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
@@ -143,7 +132,6 @@ def get_transactions():
         return jsonify({'error': str(e)}), 500
 
 
-# ---------------- GET SINGLE TRANSACTION ---------------- #
 @bp.route('/<string:transaction_id>', methods=['GET'])
 @jwt_required()
 def get_transaction(transaction_id):
