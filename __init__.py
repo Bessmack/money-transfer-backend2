@@ -23,11 +23,16 @@ def create_app(config_name='development'):
         r"/api/*": {
             "origins": [
                 "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
             ],
-            "supports_credentials": True
+            "supports_credentials": True,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
         }
     })
+    
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)

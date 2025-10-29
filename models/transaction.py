@@ -11,8 +11,8 @@ class Transaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     fee = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, nullable=False)
-    type = db.Column(db.String(50))  # 'transfer', 'add_funds', etc.
-    status = db.Column(db.String(20), default='completed')  # 'pending', 'completed', 'failed'
+    type = db.Column(db.String(50))
+    status = db.Column(db.String(20), default='completed')
     note = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -21,9 +21,7 @@ class Transaction(db.Model):
             'id': self.id,
             'transaction_id': self.transaction_id,
             'sender_id': self.sender_id,
-            'sender_name': f"{self.sender.first_name} {self.sender.last_name}" if self.sender else None,
             'receiver_id': self.receiver_id,
-            'receiver_name': f"{self.receiver.first_name} {self.receiver.last_name}" if self.receiver else None,
             'amount': round(self.amount, 2),
             'fee': round(self.fee, 2),
             'total_amount': round(self.total_amount, 2),

@@ -7,47 +7,50 @@ from datetime import datetime
 
 bp = Blueprint('transaction', __name__, url_prefix='/api/transactions')
 
+# ---------------- SEND MONEY ---------------- #
 @bp.route('/send', methods=['POST'])
 @jwt_required()
 def send_money():
     try:
         current_user_id = get_jwt_identity()
         sender_wallet = Wallet.query.filter_by(user_id=current_user_id).first()
-        
+
         if not sender_wallet:
             return jsonify({'error': 'Sender wallet not found'}), 404
-        
+
         data = request.get_json()
         receiver_id = data.get('receiver_id')
         amount = float(data.get('amount', 0))
-        
+
         if amount <= 0:
             return jsonify({'error': 'Invalid amount'}), 400
-        
+
         # Get receiver
         receiver = User.query.get(receiver_id)
         if not receiver:
             return jsonify({'error': 'Receiver not found'}), 404
-        
+
         receiver_wallet = Wallet.query.filter_by(user_id=receiver_id).first()
         if not receiver_wallet:
             return jsonify({'error': 'Receiver wallet not found'}), 404
-        
+
         # Calculate fee and total
         fee = calculate_fee(amount)
         total_amount = amount + fee
-        
-        # Check if sender has sufficient balance
+
+        # Check sender balance
         if sender_wallet.balance < total_amount:
             return jsonify({'error': 'Insufficient balance'}), 400
-        
+
         # Process transaction
         sender_wallet.balance -= total_amount
         receiver_wallet.balance += amount
-        
         sender_wallet.updated_at = datetime.utcnow()
         receiver_wallet.updated_at = datetime.utcnow()
-        
+
+        # Get sender info
+        sender = User.query.get(current_user_id)
+
         # Create transaction record
         transaction = Transaction(
             transaction_id=generate_unique_id('TXN', 7),
@@ -60,72 +63,110 @@ def send_money():
             status='completed',
             note=data.get('note', '')
         )
-        
+
         db.session.add(transaction)
         db.session.commit()
-        
+
+        transaction_data = transaction.to_dict()
+        transaction_data.update({
+            'sender_name': f"{sender.first_name} {sender.last_name}",
+            'receiver_name': f"{receiver.first_name} {receiver.last_name}"
+        })
+
         return jsonify({
             'message': 'Money sent successfully',
-            'transaction': transaction.to_dict(),
+            'transaction': transaction_data,
             'wallet': sender_wallet.to_dict()
         }), 200
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 
+# ---------------- GET TRANSACTIONS ---------------- #
 @bp.route('', methods=['GET'])
 @jwt_required()
 def get_transactions():
     try:
+        print("🔍 Transactions endpoint called")  # ADD THIS
         current_user_id = get_jwt_identity()
+        print(f"👤 Current user ID: {current_user_id}")  # ADD THIS
         
-        # Get query parameters
         transaction_type = request.args.get('type', 'all')
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
-        
-        # Build query
+
+        query = Transaction.query
         if transaction_type == 'sent':
-            transactions = Transaction.query.filter_by(sender_id=current_user_id)\
-                .order_by(Transaction.created_at.desc())\
-                .limit(limit).offset(offset).all()
+            query = query.filter_by(sender_id=current_user_id)
         elif transaction_type == 'received':
-            transactions = Transaction.query.filter_by(receiver_id=current_user_id)\
-                .order_by(Transaction.created_at.desc())\
-                .limit(limit).offset(offset).all()
+            query = query.filter_by(receiver_id=current_user_id)
         else:
-            transactions = Transaction.query.filter(
-                (Transaction.sender_id == current_user_id) | 
+            query = query.filter(
+                (Transaction.sender_id == current_user_id) |
                 (Transaction.receiver_id == current_user_id)
-            ).order_by(Transaction.created_at.desc())\
-             .limit(limit).offset(offset).all()
+            )
+
+        transactions = query.order_by(Transaction.created_at.desc()) \
+            .limit(limit).offset(offset).all()
+
+        # Get all unique user IDs
+        user_ids = set()
+        for t in transactions:
+            user_ids.add(t.sender_id)
+            user_ids.add(t.receiver_id)
         
+        # Fetch all users at once
+        users = User.query.filter(User.id.in_(user_ids)).all()
+        user_dict = {u.id: u for u in users}
+
+        # Build transaction list
+        transactions_list = []
+        for t in transactions:
+            sender = user_dict.get(t.sender_id)
+            receiver = user_dict.get(t.receiver_id)
+
+            t_data = t.to_dict()
+            t_data.update({
+                'sender_name': f"{sender.first_name} {sender.last_name}" if sender else None,
+                'receiver_name': f"{receiver.first_name} {receiver.last_name}" if receiver else None
+            })
+            transactions_list.append(t_data)
+
         return jsonify({
-            'transactions': [t.to_dict() for t in transactions],
-            'count': len(transactions)
+            'transactions': transactions_list,
+            'count': len(transactions_list)
         }), 200
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/<int:transaction_id>', methods=['GET'])
+# ---------------- GET SINGLE TRANSACTION ---------------- #
+@bp.route('/<string:transaction_id>', methods=['GET'])
 @jwt_required()
 def get_transaction(transaction_id):
     try:
         current_user_id = get_jwt_identity()
-        transaction = Transaction.query.get(transaction_id)
-        
+        transaction = Transaction.query.filter_by(transaction_id=transaction_id).first()
+
         if not transaction:
             return jsonify({'error': 'Transaction not found'}), 404
-        
-        # Check if user is authorized to view this transaction
+
         if transaction.sender_id != current_user_id and transaction.receiver_id != current_user_id:
             return jsonify({'error': 'Unauthorized'}), 403
-        
-        return jsonify({'transaction': transaction.to_dict()}), 200
-        
+
+        sender = User.query.get(transaction.sender_id)
+        receiver = User.query.get(transaction.receiver_id)
+
+        transaction_data = transaction.to_dict()
+        transaction_data.update({
+            'sender_name': f"{sender.first_name} {sender.last_name}" if sender else None,
+            'receiver_name': f"{receiver.first_name} {receiver.last_name}" if receiver else None
+        })
+
+        return jsonify({'transaction': transaction_data}), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
