@@ -27,16 +27,13 @@ def register():
             last_name=data['last_name'],
             email=data['email'],
             phone=data.get('phone'),
-            country=data.get('country'),
-            address=data.get('address'),
-            city=data.get('city'),
-            zip_code=data.get('zip_code'),
             role=data.get('role', 'user')
         )
+
         user.set_password(data['password'])
         
         db.session.add(user)
-        db.session.flush()
+        db.session.flush()  # ensures user.id is available before commit
         
         # Create wallet for user
         wallet = Wallet(

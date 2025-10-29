@@ -47,8 +47,11 @@ def validate_email(email):
     Returns:
         bool: True if valid, False otherwise
     """
+    
+    if not isinstance(email, str) or not email:
+        return False
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email) is not None
+    return re.match(pattern, email, re.IGNORECASE) is not None
 
 
 def validate_phone(phone):
